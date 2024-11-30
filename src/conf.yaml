@@ -1,0 +1,2 @@
+CacheURLResponse: true  # 是否缓存 URL 返回的结果.
+CacheURLResponseExpireS: 1800  # URL 缓存结果的失效时间, 单位秒.

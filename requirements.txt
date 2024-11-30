@@ -1,0 +1,8 @@
+redis
+fastapi[standard]
+apscheduler
+requests
+xmltodict
+pydantic
+pyyaml
+httpx

@@ -1,0 +1,9 @@
+services:
+
+  storage:
+    image: redis
+    container_name: redis
+    restart: always
+    network_mode: host
+    # ports:
+    #   - "5300:80"
