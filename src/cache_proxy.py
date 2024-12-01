@@ -1,5 +1,6 @@
 import time
 from abc import ABC, abstractmethod
+from threading import Lock
 
 import redis
 from redis_conf import *
@@ -16,11 +17,25 @@ class AbsCacheProxy(ABC):
         raise NotImplementedError
 
 
+def LockWrapper(func):
+    def inner(self, *args, **kwargs):
+        lock = self.lock
+        lock.acquire()
+        try:
+            ret = func(self, *args, **kwargs)
+            return ret
+        finally:
+            lock.release()
+    return inner
+
+
 class MemoryCacheProxy(AbsCacheProxy):
     def __init__(self):
         self.cache: dict[str, bytes] = dict()
         self.ex: dict[str, (int, int)] = dict()
+        self.lock = Lock()
 
+    @LockWrapper
     def set(self, name: str, value: str | bytes, ex: int | None = None):
         if type(value) is str:
             self.cache[name] = value.encode('utf-8')
@@ -31,6 +46,7 @@ class MemoryCacheProxy(AbsCacheProxy):
         if ex:
             self.ex[name] = int(time.time()), ex
 
+    @LockWrapper
     def get(self, name: str) -> bytes | None:
         if name not in self.cache:
             return None
