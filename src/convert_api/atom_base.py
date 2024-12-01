@@ -26,6 +26,7 @@ class Image(Media):
 
 class Video(Media):
     aid: str
+    bid: str
     cover: str
     desc: str
     duration: str
@@ -33,7 +34,13 @@ class Video(Media):
     title: str
 
     def html(self):
-        return f"""<p>视频暂不支持直接播放。</p><img src="{self.cover}"/>"""
+        return f"""
+<p>投稿了视频</p>
+<p><b>{self.title}</b></p>
+<p>{self.desc}</p>
+<p>视频暂不支持直接播放。</p>
+<img src="{self.cover}"/>
+""".strip()
 
 
 class AtomEntry(BaseModel):

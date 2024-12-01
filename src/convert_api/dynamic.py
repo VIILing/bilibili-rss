@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Callable, Any
 from typing_extensions import Self
 from pydantic import BaseModel
-from .atom_base import Media, Text, Image, AtomEntry, AtomFeed
+from .atom_base import Media, Text, Image, Video, AtomEntry, AtomFeed
 
 
 class MajorType:
@@ -123,8 +123,20 @@ class MajorExtractor:
         :param _major:
         :return:
         """
+        archive = _major['archive']
+        video_title = archive['title']
+        video = Video(
+            aid=archive['aid'],
+            bid=archive['bvid'],
+            cover=archive['cover'],
+            desc=archive['desc'],
+            duration=archive['duration_text'],
+            jump_url=archive['jump_url'].replace('//www.bilibili.com', 'https://www.bilibili.com'),
+            title=video_title,
+        )
         return MajorExtractResult(
-            media_list=[Text(text="暂未实现。（视频信息）")]
+            media_list=[video],
+            title=f"投稿了视频：{video_title}"
         )
 
     @staticmethod
@@ -297,10 +309,10 @@ def extract_dynamic(user_id: int, json_resp: dict) -> AtomFeed:
     author_name = f'用户{user_id}' if author_name is None else author_name
     atom_feed = AtomFeed(
         title=f'{author_name}的动态',
-        link=f'/bilibili/dynamic?user_id={user_id}',
+        link=f'/bilibili/dynamic/{user_id}',
         updated=datetime.now().strftime('%Y-%m-%dT%H:%M:%S+08:00'),
-        authors=['VIILing'],
-        fid=f'https://space.bilibili.com/{user_id}',
+        authors=[author_name],
+        fid=f'brss/bilibili/dynamic/{user_id}',
         entry_list=entr_list
     )
     return atom_feed
