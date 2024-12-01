@@ -1,16 +1,16 @@
-from datetime import datetime
-from fastapi import FastAPI, Response
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.interval import IntervalTrigger
-from cache_proxy import AbsCacheProxy, MemoryCacheProxy
-from contextlib import asynccontextmanager
 from threading import Lock
+from contextlib import asynccontextmanager
+
 import httpx
+from fastapi import FastAPI, Response
+from apscheduler.triggers.cron import CronTrigger
+from apscheduler.schedulers.background import BackgroundScheduler
 
 from my_log import get_logger
 from collect_api import auth as auth_api
 from collect_api import dynamic as dynamic_collect_api
 from convert_api import dynamic as dynamic_convert_api
+from cache_proxy import AbsCacheProxy, MemoryCacheProxy
 
 
 update_lock = Lock()
@@ -35,7 +35,7 @@ def update_bilibili_cookie_job():
 async def lifespan(_app: FastAPI):
     # file_wd = os.path.split(os.path.abspath(__file__))[0]
     scheduler = BackgroundScheduler()
-    scheduler.add_job(update_bilibili_cookie_job, IntervalTrigger(days=1), id="job_id", name="My periodic task")
+    scheduler.add_job(update_bilibili_cookie_job, CronTrigger(hour=1), id="job_id", name="My periodic task")
     scheduler.start()
     logger.debug('开始更新cookie')
     update_bilibili_cookie_job()

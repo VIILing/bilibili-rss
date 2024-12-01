@@ -1,9 +1,15 @@
 services:
 
-  storage:
-    image: redis
-    container_name: redis
-    restart: always
-    network_mode: host
-    # ports:
-    #   - "5300:80"
+  web:
+    image: VIILing/bilibili-rss:latest
+    container_name: brss-web
+    ports:
+      - "12001:8000"
+
+#  storage:
+#    image: redis
+#    container_name: redis
+#    restart: always
+#    network_mode: host
+#    ports:
+#      - "5300:80"
