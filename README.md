@@ -21,8 +21,8 @@ B站（bilibili）RSS源生成服务。在部署完毕后，你可以通过访�
 ```shell
 git clone https://github.com/VIILing/bilibili-rss.git
 cd bilibili-rss
-commitId=$(git rev-parse --short HEAD)
-sudo docker build -t VIILing/bilibili-rss:$commitId -t VIILing/bilibili-rss:latest .
+chmod u+x build_images.sh
+./build_images.sh
 sudo docker compose up -d
 ```
 
