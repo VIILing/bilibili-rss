@@ -244,7 +244,10 @@ class DynamicExtractor:
     def __init__(self):
         self.major_extractor = MajorExtractor()
 
-    def extract(self, dynamic: dict) -> AtomEntry:
+    def extract(self, dynamic: dict) -> AtomEntry | None:
+        if dynamic['type'] == 'DYNAMIC_TYPE_LIVE_RCMD':
+            return None
+
         dynamic_id = dynamic['id_str']
         modules = dynamic['modules']
         title = None
@@ -258,7 +261,6 @@ class DynamicExtractor:
             media_list.append(Text(text=desc['text']))
             title = desc['text'] if title is None else title
 
-        # orig
         if dynamic['type'] == 'DYNAMIC_TYPE_FORWARD':
             orig = dynamic['orig']
             orig_author = orig['modules']['module_author']['name']
@@ -300,7 +302,10 @@ def extract_dynamic(user_id: int, json_resp: dict) -> AtomFeed:
     dynamic_extractor = DynamicExtractor()
     entr_list: list[AtomEntry] = []
     for item in data['items']:
-        entr_list.append(dynamic_extractor.extract(item))
+        entry = dynamic_extractor.extract(item)
+        if entry is None:
+            continue
+        entr_list.append(entry)
 
     author_name: str | None = None
     if data['items']:
