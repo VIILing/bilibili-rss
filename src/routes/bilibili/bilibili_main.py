@@ -42,7 +42,7 @@ async def lifespan(_app: APIRouter):
     scheduler.pause()
 
 
-router = get_router('/bilibili', lifespan=lifespan)
+router = get_router('bilibili', lifespan=lifespan)
 
 
 StrOrNoneType = str | None

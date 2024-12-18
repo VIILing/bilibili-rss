@@ -20,12 +20,19 @@ def get_app() -> FastAPI:
 _ApiRouterList = []
 
 
-def get_router(prefix: str, **kwargs) -> APIRouter:
-    if re.match(r'/[a-zA-Z0-9-_/}{]+', prefix) is None:
-        raise RuntimeError(f'Invalid prefix: {prefix}')
+def get_router(domain: str, **kwargs) -> APIRouter:
+    if re.match(r'[a-zA-Z0-9-_}{]+', domain) is None:
+        raise RuntimeError(f'Invalid domain: {domain}')
     if 'prefix' in kwargs:
         del kwargs['prefix']
-    router = APIRouter(prefix=f'/rss{prefix}', **kwargs)
+    if 'tags' in kwargs:
+        if type(kwargs['tags']) is not list:
+            raise TypeError('Type of variable tags is not list')
+        if domain not in kwargs['tags']:
+            kwargs['tags'].append(domain)
+    else:
+        kwargs['tags'] = [domain]
+    router = APIRouter(prefix=f'/rss/{domain}', **kwargs)
     _ApiRouterList.append(router)
     return router
 
