@@ -1,6 +1,8 @@
 import re
 import secrets
 from typing import Annotated
+from threading import Lock
+
 from fastapi import FastAPI, APIRouter, Depends, Request, Response, HTTPException, status
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
@@ -15,6 +17,7 @@ _Logger = get_logger('Main')
 _Security = HTTPBasic()
 _AUTH_USER: bytes | None = None
 _AUTH_PWD: bytes | None = None
+_AuthLock = Lock()
 
 
 if _AUTH_USER is not None:
@@ -25,29 +28,43 @@ if _AUTH_USER is not None:
 def verify_user(
     credentials: Annotated[HTTPBasicCredentials, Depends(_Security)],
 ):
-    if _AUTH_USER is None:
-        return ""
+    _AuthLock.acquire()
+    try:
+        if _AUTH_USER is None:
+            return ""
 
-    current_username_bytes = credentials.username.encode("utf8")
-    correct_username_bytes = _AUTH_USER
-    is_correct_username = secrets.compare_digest(
-        current_username_bytes, correct_username_bytes
-    )
-    current_password_bytes = credentials.password.encode("utf8")
-    correct_password_bytes = _AUTH_PWD
-    is_correct_password = secrets.compare_digest(
-        current_password_bytes, correct_password_bytes
-    )
-    if not (is_correct_username and is_correct_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Basic"},
+        current_username_bytes = credentials.username.encode("utf8")
+        correct_username_bytes = _AUTH_USER
+        is_correct_username = secrets.compare_digest(
+            current_username_bytes, correct_username_bytes
         )
-    return credentials.username
+        current_password_bytes = credentials.password.encode("utf8")
+        correct_password_bytes = _AUTH_PWD
+        is_correct_password = secrets.compare_digest(
+            current_password_bytes, correct_password_bytes
+        )
+        if not (is_correct_username and is_correct_password):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect username or password",
+                headers={"WWW-Authenticate": "Basic"},
+            )
+        return credentials.username
+    finally:
+        _AuthLock.release()
 
 
 _App = FastAPI(dependencies=[Depends(verify_user)])
+
+
+def change_auth(username: str, password: str):
+    _AuthLock.acquire()
+    try:
+        global _AUTH_USER, _AUTH_PWD
+        _AUTH_USER = username.encode()
+        _AUTH_PWD = password.encode()
+    finally:
+        _AuthLock.release()
 
 
 def get_app() -> FastAPI:

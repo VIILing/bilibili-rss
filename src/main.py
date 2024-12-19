@@ -1,6 +1,9 @@
 import os
 import importlib
+import init
 from init import get_app, register_all, get_logger
+
+from pydantic import BaseModel, Field
 
 
 logger = get_logger()
@@ -24,3 +27,14 @@ register_all()
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
+
+
+class ChangeAuthBody(BaseModel):
+    username: str = Field(..., pattern='[a-zA-Z0-9]{1, 50}')
+    password: str = Field(..., pattern='[a-zA-Z0-9]{1, 50}')
+
+
+@app.post("/setting/changeAuth")
+async def change_auth(change: ChangeAuthBody):
+    init.change_auth(username=change.username, password=change.password)
+    return {"message": "ok"}
