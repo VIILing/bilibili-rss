@@ -1,16 +1,53 @@
 import re
-from fastapi import FastAPI, APIRouter, Request, Response
+import secrets
+from typing import Annotated
+from fastapi import FastAPI, APIRouter, Depends, Request, Response, HTTPException, status
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
 from my_log import logging, get_logger
 from cache_proxy import AbsCacheProxy, MemoryCacheProxy
 
 
-RSS_CONTENT_CACHE_TIME_S = int(60 * 5)  # todo: read setting instead hard coding
 _CacheProxy: AbsCacheProxy = MemoryCacheProxy()
 _Logger = get_logger('Main')
 
 
-_App = FastAPI()
+_Security = HTTPBasic()
+_AUTH_USER: bytes | None = None
+_AUTH_PWD: bytes | None = None
+
+
+if _AUTH_USER is not None:
+    if type(_AUTH_USER) is not str or _AUTH_PWD is None or type(_AUTH_PWD) is not bytes:
+        raise RuntimeError
+
+
+def verify_user(
+    credentials: Annotated[HTTPBasicCredentials, Depends(_Security)],
+):
+    if _AUTH_USER is None:
+        return ""
+
+    current_username_bytes = credentials.username.encode("utf8")
+    correct_username_bytes = _AUTH_USER
+    is_correct_username = secrets.compare_digest(
+        current_username_bytes, correct_username_bytes
+    )
+    current_password_bytes = credentials.password.encode("utf8")
+    correct_password_bytes = _AUTH_PWD
+    is_correct_password = secrets.compare_digest(
+        current_password_bytes, correct_password_bytes
+    )
+    if not (is_correct_username and is_correct_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return credentials.username
+
+
+_App = FastAPI(dependencies=[Depends(verify_user)])
 
 
 def get_app() -> FastAPI:
