@@ -16,6 +16,10 @@ class AbsCacheProxy(ABC):
     def get(self, name: str) -> bytes | None:
         raise NotImplementedError
 
+    @abstractmethod
+    def list_all(self) -> list[tuple[str, str]]:
+        raise NotImplementedError
+
 
 def LockWrapper(func):
     def inner(self, *args, **kwargs):
@@ -61,6 +65,10 @@ class MemoryCacheProxy(AbsCacheProxy):
         else:
             return self.cache[name]
 
+    @LockWrapper
+    def list_all(self) -> list[tuple[str, str]]:
+        return [(k, v.decode()) for k, v in self.cache.items()]
+
 
 class RedisCacheProxy(AbsCacheProxy):
 
@@ -73,3 +81,6 @@ class RedisCacheProxy(AbsCacheProxy):
 
     def get(self, name: str) -> bytes | None:
         return self.redis_conn.get(name)
+
+    def list_all(self) -> list[tuple[str, str]]:
+        return [(k, self.redis_conn.get(k).decode()) for k in self.redis_conn.keys()]  # maybe have better command ?

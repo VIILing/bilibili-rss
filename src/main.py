@@ -1,7 +1,7 @@
 import os
 import importlib
 import init
-from init import get_app, register_all, get_logger
+from init import get_app, register_all, get_logger, get_cache_proxy
 
 from pydantic import BaseModel, Field
 
@@ -34,7 +34,28 @@ class ChangeAuthBody(BaseModel):
     password: str = Field(..., pattern='[a-zA-Z0-9]{1, 50}')
 
 
-@app.post("/setting/changeAuth")
+@app.post("/api/setting/auth/changeAuth")
 async def change_auth(change: ChangeAuthBody):
     init.change_auth(username=change.username, password=change.password)
     return {"message": "ok"}
+
+
+@app.get("/api/setting/kv/list")
+async def kv_list():
+    data = get_cache_proxy().list_all()
+    return {
+        "status": 0,
+        "msg": "",
+        "data": {"items": [{'key': k, 'value': v} for k, v in data], "total": len(data)}
+    }
+
+
+class KvUpdate(BaseModel):
+    key: str
+    value: str
+
+
+@app.post("/api/setting/kv/update")
+async def kv_update(body: KvUpdate):
+    get_cache_proxy().set(body.key, body.value)
+    return {"status": 0, "msg": ""}

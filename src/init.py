@@ -5,6 +5,7 @@ from threading import Lock
 
 from fastapi import FastAPI, APIRouter, Depends, Request, Response, HTTPException, status
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from fastapi.staticfiles import StaticFiles
 
 from my_log import logging, get_logger
 from cache_proxy import AbsCacheProxy, MemoryCacheProxy
@@ -55,6 +56,8 @@ def verify_user(
 
 
 _App = FastAPI(dependencies=[Depends(verify_user)])
+
+_App.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 def change_auth(username: str, password: str):
