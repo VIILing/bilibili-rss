@@ -37,128 +37,324 @@
         // 通过替换下面这个配置来生成不同页面
         let amisJSON = {
   "type": "page",
-  "title": "kvManager",
+  "title": "kvManager2",
   "body": [
     {
-      "type": "crud",
-      "syncLocation": false,
+      "id": "u:6042227fa921",
+      "type": "crud2",
+      "mode": "table2",
+      "dsType": "api",
+      "syncLocation": true,
+      "primaryField": "key",
+      "loadType": "pagination",
       "api": {
-        "method": "get",
-        "url": "/api/setting/kv/list"
+        "url": "/api/setting/kv/list",
+        "method": "get"
       },
-      "bulkActions": [],
-      "itemActions": [],
+      "headerToolbar": [
+        {
+          "type": "flex",
+          "direction": "row",
+          "justify": "flex-start",
+          "alignItems": "stretch",
+          "style": {
+            "position": "static",
+            "flexWrap": "nowrap"
+          },
+          "items": [],
+          "id": "u:67de926b0763",
+          "isFixedHeight": false,
+          "isFixedWidth": false
+        }
+      ],
+      "footerToolbar": [
+        {
+          "type": "flex",
+          "direction": "row",
+          "justify": "flex-start",
+          "alignItems": "stretch",
+          "style": {
+            "position": "static",
+            "flexWrap": "nowrap"
+          },
+          "items": [
+            {
+              "type": "container",
+              "align": "right",
+              "body": [
+                {
+                  "type": "pagination",
+                  "behavior": "Pagination",
+                  "layout": [
+                    "total",
+                    "perPage",
+                    "pager"
+                  ],
+                  "perPage": 10,
+                  "perPageAvailable": [
+                    10,
+                    20,
+                    50,
+                    100
+                  ],
+                  "align": "right",
+                  "id": "u:2545586bd598"
+                }
+              ],
+              "wrapperBody": false,
+              "style": {
+                "flexGrow": 1,
+                "flex": "1 1 auto",
+                "position": "static",
+                "display": "flex",
+                "flexBasis": "auto",
+                "flexDirection": "row",
+                "flexWrap": "nowrap",
+                "alignItems": "stretch",
+                "justifyContent": "flex-end"
+              },
+              "id": "u:20efcc4463cc"
+            }
+          ],
+          "id": "u:64d135fe1e28",
+          "isFixedHeight": false,
+          "isFixedWidth": false
+        }
+      ],
       "columns": [
         {
+          "type": "tpl",
+          "title": "键",
           "name": "key",
-          "label": "键",
-          "type": "text",
-          "id": "u:65e8af79e96c"
+          "id": "u:e316adf86937",
+          "placeholder": "-",
+          "copyable": true,
+          "sorter": true,
+          "searchable": true
         },
         {
+          "type": "tpl",
+          "title": "值",
           "name": "value",
-          "label": "值",
-          "type": "text",
-          "id": "u:93db3b196d3f"
+          "id": "u:0cc676ecc847",
+          "placeholder": "-",
+          "copyable": true,
+          "sorter": true,
+          "searchable": true
         },
         {
           "type": "operation",
-          "label": "操作",
+          "title": "操作",
           "buttons": [
             {
-              "label": "编辑",
               "type": "button",
-              "actionType": "dialog",
+              "label": "查看",
               "level": "link",
-              "editorSetting": {
-                "behavior": "update"
-              },
-              "dialog": {
-                "type": "dialog",
-                "title": "编辑",
-                "body": [
-                  {
-                    "type": "form",
-                    "api": {
-                      "method": "post",
-                      "url": "/api/setting/kv/update",
-                      "requestAdaptor": "",
-                      "adaptor": "",
-                      "messages": {},
-                      "dataType": "json"
-                    },
-                    "initApi": "",
-                    "body": [
-                      {
-                        "name": "key",
-                        "label": "键",
-                        "type": "input-text",
-                        "id": "u:2c4e8c443374",
-                        "readOnly": true,
-                        "static": true
-                      },
-                      {
-                        "name": "value",
-                        "label": "值",
-                        "type": "input-text",
-                        "id": "u:edd6db4f5a60",
-                        "clearable": true
+              "behavior": "View",
+              "onEvent": {
+                "click": {
+                  "actions": [
+                    {
+                      "actionType": "dialog",
+                      "dialog": {
+                        "type": "dialog",
+                        "body": [
+                          {
+                            "id": "u:9b67b299eaf0",
+                            "type": "form",
+                            "title": "查看数据",
+                            "mode": "flex",
+                            "labelAlign": "top",
+                            "dsType": "api",
+                            "feat": "View",
+                            "body": [
+                              {
+                                "name": "key",
+                                "label": "键",
+                                "row": 0,
+                                "type": "input-text",
+                                "id": "u:65316c9fd206",
+                                "readOnly": true
+                              },
+                              {
+                                "name": "value",
+                                "label": "值",
+                                "row": 1,
+                                "type": "input-text",
+                                "id": "u:d3483deb48dd",
+                                "readOnly": true
+                              }
+                            ],
+                            "static": true,
+                            "actions": [
+                              {
+                                "type": "button",
+                                "actionType": "cancel",
+                                "label": "关闭"
+                              }
+                            ],
+                            "onEvent": {
+                              "submitSucc": {
+                                "actions": [
+                                  {
+                                    "actionType": "search",
+                                    "groupType": "component",
+                                    "componentId": "u:6042227fa921"
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        ],
+                        "title": "查看数据",
+                        "size": "md",
+                        "actions": [
+                          {
+                            "type": "button",
+                            "actionType": "cancel",
+                            "label": "关闭",
+                            "id": "u:b2e36c6a51ee"
+                          }
+                        ],
+                        "actionType": "dialog",
+                        "id": "u:c0b506b1fe89",
+                        "showCloseButton": true,
+                        "closeOnOutside": false,
+                        "closeOnEsc": false,
+                        "showErrorMsg": true,
+                        "showLoading": true,
+                        "draggable": false
                       }
-                    ],
-                    "id": "u:9aef34bbfd9e",
-                    "actions": [
-                      {
-                        "type": "submit",
-                        "label": "提交",
-                        "primary": true
-                      }
-                    ],
-                    "feat": "Edit",
-                    "dsType": "api",
-                    "labelAlign": "left"
-                  }
-                ],
-                "actionType": "dialog",
-                "id": "u:061cc63a2718",
-                "actions": [
-                  {
-                    "type": "button",
-                    "actionType": "cancel",
-                    "label": "取消",
-                    "id": "u:cafe3a8447ce"
-                  },
-                  {
-                    "type": "button",
-                    "actionType": "confirm",
-                    "label": "确定",
-                    "primary": true,
-                    "id": "u:e78deadb6953"
-                  }
-                ]
+                    }
+                  ]
+                }
               },
-              "id": "u:9ecb68ea4c2f"
+              "id": "u:06d7b4ce2b16"
+            },
+            {
+              "type": "button",
+              "label": "编辑",
+              "level": "link",
+              "behavior": "Edit",
+              "onEvent": {
+                "click": {
+                  "actions": [
+                    {
+                      "actionType": "dialog",
+                      "dialog": {
+                        "type": "dialog",
+                        "body": [
+                          {
+                            "id": "u:ff28fbcea692",
+                            "type": "form",
+                            "title": "编辑数据",
+                            "mode": "flex",
+                            "labelAlign": "top",
+                            "dsType": "api",
+                            "feat": "Edit",
+                            "body": [
+                              {
+                                "name": "key",
+                                "label": "键",
+                                "row": 0,
+                                "type": "input-text",
+                                "id": "u:93a99ee201c7",
+                                "readOnly": true
+                              },
+                              {
+                                "name": "value",
+                                "label": "值",
+                                "row": 1,
+                                "type": "input-text",
+                                "id": "u:82075bfb6bf9"
+                              }
+                            ],
+                            "resetAfterSubmit": true,
+                            "actions": [
+                              {
+                                "type": "button",
+                                "actionType": "cancel",
+                                "label": "取消"
+                              },
+                              {
+                                "type": "button",
+                                "actionType": "submit",
+                                "label": "提交",
+                                "level": "primary"
+                              }
+                            ],
+                            "onEvent": {
+                              "submitSucc": {
+                                "actions": [
+                                  {
+                                    "actionType": "search",
+                                    "groupType": "component",
+                                    "componentId": "u:6042227fa921"
+                                  }
+                                ]
+                              }
+                            },
+                            "api": {
+                              "url": "/api/setting/kv/update",
+                              "method": "post",
+                              "requestAdaptor": "",
+                              "adaptor": "",
+                              "messages": {},
+                              "dataType": "json"
+                            }
+                          }
+                        ],
+                        "title": "编辑数据",
+                        "size": "md",
+                        "actions": [
+                          {
+                            "type": "button",
+                            "actionType": "cancel",
+                            "label": "取消",
+                            "id": "u:7492295802ec"
+                          },
+                          {
+                            "type": "button",
+                            "actionType": "submit",
+                            "label": "提交",
+                            "level": "primary",
+                            "id": "u:f195f3f333c4"
+                          }
+                        ],
+                        "actionType": "dialog",
+                        "id": "u:9a61e9ba16a4",
+                        "showCloseButton": true,
+                        "closeOnOutside": false,
+                        "closeOnEsc": false,
+                        "showErrorMsg": true,
+                        "showLoading": true,
+                        "draggable": false
+                      }
+                    }
+                  ]
+                }
+              },
+              "id": "u:a8b55ef775a4"
             }
           ],
-          "id": "u:877a3fc6c2e6",
-          "placeholder": "-"
+          "id": "u:72d97019c782"
         }
       ],
-      "id": "u:bb691ba77b04",
-      "perPageAvailable": [
-        5,
-        10,
-        20,
-        50,
-        100
-      ],
-      "messages": {}
+      "editorSetting": {
+        "mock": {
+          "enable": true,
+          "maxDisplayRows": 5
+        }
+      },
+      "loadDataOnce": true
     }
   ],
-  "id": "u:eb6c33ee529b",
+  "id": "u:f14a5695c813",
   "asideResizor": false,
   "pullRefresh": {
     "disabled": true
-  }
+  },
+  "definitions": {}
 }
 
 
