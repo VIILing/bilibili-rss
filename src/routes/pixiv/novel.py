@@ -1,4 +1,5 @@
 import re
+import random
 from pixivpy3 import AppPixivAPI
 from rss_model import *
 from cache_proxy import CacheLib
@@ -68,9 +69,14 @@ def novel_content(api: AppPixivAPI, novel_id: str) -> str:
     replace_id_list = re.findall(r'\[uploadedimage:(\d+)]', original_text)
     replace_kv: dict[str, str] = {rid: images.get(rid, {}).get('urls', None) for rid in replace_id_list if rid in images and 'urls' in images[rid] and 'original' in images[rid]['urls']}
     text: str = original_text.replace('\t', '    ')
+    v: dict
     for k, v in replace_kv.items():
         if v is None:
             continue
-        vv = to_proxy_url(v)
-        text = text.replace(k, f'\n<img src="{vv}"/>\n')
+        if 'original' in v:
+            vv = v['original']
+        else:
+            vv = random.choice(list(v.values()))
+        vvv = to_proxy_url(vv)
+        text = text.replace(k, f'\n<img src="{vvv}"/>\n')
     return text
