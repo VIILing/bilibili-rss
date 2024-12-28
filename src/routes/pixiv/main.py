@@ -7,6 +7,7 @@ from init import get_router, get_cache_proxy, get_logger
 
 from cache_proxy import CacheLib
 from fastapi import APIRouter, Response, HTTPException, Depends
+from fastapi.responses import RedirectResponse
 from pixivpy3 import AppPixivAPI, PixivError
 from . import novel
 from rss_model import AtomFeed
@@ -86,6 +87,11 @@ async def image_proxy(full_path: str):
         bc = bio.getvalue()
     CacheProxy.set(key, bc, lib=CacheLib.RUNTIME)
     return Response(content=bc, media_type=f"image/{img_type}")
+
+
+@router.get('/novel_redirect/{novel_id}')
+async def novel_redirect(novel_id: str):
+    return RedirectResponse(url=f'https://www.pixiv.net/novel/show.php?id={novel_id}')
 
 
 @router.get("/user_novels/{user_id}")

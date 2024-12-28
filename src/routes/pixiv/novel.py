@@ -53,7 +53,7 @@ def user_novels(api: AppPixivAPI, user_id: int, cache_proxy: AbsCacheProxy) -> t
 
         ret.append(AtomEntry(
             title=f'{author_name} 更新了小说: {title}',
-            link=f'https://www.pixiv.net/novel/show.php?id={novel_id}',
+            link=f'/rss/pixiv/novel_redirect/{novel_id}',
             eid=str(novel_id),
             updated=pulib_time_str,
             summary=summary,
