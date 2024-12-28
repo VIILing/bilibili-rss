@@ -93,8 +93,8 @@ class MemoryCacheProxy(AbsCacheProxy):
 class SQLiteCacheProxy(AbsCacheProxy):
     def __init__(self):
         # self.engine = create_engine("sqlite:///SQLite3CacheDb.db", connect_args={"check_same_thread": False})
-        os.makedirs('./db', exist_ok=True)
-        self.engine = create_engine("sqlite:///./db/SQLite3CacheDb.db")
+        os.makedirs('./data', exist_ok=True)
+        self.engine = create_engine("sqlite:///./data/SQLite3CacheDb.db")
         with self.engine.connect() as conn:
             conn.execute(text("CREATE TABLE if not exists config_cache(key TEXT PRIMARY KEY, value BLOB, set_time INTEGER, exp_time INTEGER)"))
             conn.execute(text("CREATE TABLE if not exists runtime_cache(key TEXT PRIMARY KEY, value BLOB, set_time INTEGER, exp_time INTEGER)"))
