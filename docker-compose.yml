@@ -1,7 +1,7 @@
 services:
 
   web:
-    image: VIILing/bilibili-rss:latest
+    image: VIILing/bilibili-rss:dev
     container_name: brss-web
     ports:
       - "12001:8000"
