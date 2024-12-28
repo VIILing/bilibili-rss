@@ -9,11 +9,7 @@ Logger = get_logger('pixiv')
 
 
 def to_proxy_url(ori: str):
-    x = (
-        ori
-        .replace('https://', 'https---')
-        .replace('http://', 'http---')
-    )
+    x = ori.replace('https://', 'https---').replace('http://', 'http---')
     xx = f'/rss/pixiv/img_proxy/{x}'
     return xx
 
