@@ -1,0 +1,2 @@
+1. Cookie缓存和Feed缓存和配置存储分开来，不要都塞CacheProxy里面。
+2. 用数据库（SQLite+SQLAlchemy）来对一些数据进行持久化的存储。

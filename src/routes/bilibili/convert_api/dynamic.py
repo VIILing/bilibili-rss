@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Callable, Any
 from typing_extensions import Self
 from pydantic import BaseModel
-from .atom_base import Media, Text, Image, Video, AtomEntry, AtomFeed
+from rss_model import Media, Text, Image, Video, AtomEntry, AtomFeed
 
 
 class MajorType:

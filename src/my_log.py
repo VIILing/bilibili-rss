@@ -39,7 +39,7 @@ class ColorFormatter(logging.Formatter):
         return formatter.format(record)
 
 
-def get_logger(
+def get_or_create_logger(
         name: str,
         std_color: bool = True,
         std_level: int = logging.DEBUG,

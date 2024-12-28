@@ -1,73 +1,86 @@
 import re
 import secrets
 from typing import Annotated
-from threading import Lock
+from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, APIRouter, Depends, Request, Response, HTTPException, status
+from fastapi import FastAPI, APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.staticfiles import StaticFiles
+from pydantic import Field
+from pydantic_settings import BaseSettings as EnvSettingModel
+from apscheduler.triggers.interval import IntervalTrigger
+from apscheduler.schedulers.background import BackgroundScheduler
 
-from my_log import logging, get_logger
-from cache_proxy import AbsCacheProxy, MemoryCacheProxy
+from my_log import logging, get_or_create_logger
+from cache_proxy import AbsCacheProxy, SQLiteCacheProxy
 
 
-_CacheProxy: AbsCacheProxy = MemoryCacheProxy()
-_Logger = get_logger('Main')
+class EnvSetting(EnvSettingModel):
+    auth_user: str | None = Field(None, pattern=r'[a-zA-Z0-9]{1,50}')
+    auth_pwd: str | None = Field(None, pattern=r'[a-zA-Z0-9!@#$%^&*()-_]{1,50}')
+
+
+UserEnvSetting = EnvSetting()
+_CacheProxy: AbsCacheProxy = SQLiteCacheProxy()
+_Logger = get_or_create_logger('Main')
 
 
 _Security = HTTPBasic()
-_AUTH_USER: bytes | None = None
-_AUTH_PWD: bytes | None = None
-_AuthLock = Lock()
+_AuthUser = None if UserEnvSetting.auth_user is None else UserEnvSetting.auth_user.encode()
+_AuthPwd = None if UserEnvSetting.auth_pwd is None else UserEnvSetting.auth_pwd.encode()
 
 
-if _AUTH_USER is not None:
-    if type(_AUTH_USER) is not str or _AUTH_PWD is None or type(_AUTH_PWD) is not bytes:
-        raise RuntimeError
+if _AuthUser is not None and _AuthPwd is None:
+    raise RuntimeError
+if _AuthPwd is not None and _AuthUser is None:
+    raise RuntimeError
 
 
 def verify_user(
     credentials: Annotated[HTTPBasicCredentials, Depends(_Security)],
 ):
-    _AuthLock.acquire()
+    current_username_bytes = credentials.username.encode("utf8")
+    is_correct_username = secrets.compare_digest(
+        current_username_bytes, _AuthUser
+    )
+    current_password_bytes = credentials.password.encode("utf8")
+    is_correct_password = secrets.compare_digest(
+        current_password_bytes, _AuthPwd
+    )
+    if not (is_correct_username and is_correct_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return credentials.username
+
+
+def job_clear_expired_cache():
+    # todo: This is not a standardized practice, it's not good.
+    local_cache_proxy = SQLiteCacheProxy()
     try:
-        if _AUTH_USER is None:
-            return ""
-
-        current_username_bytes = credentials.username.encode("utf8")
-        correct_username_bytes = _AUTH_USER
-        is_correct_username = secrets.compare_digest(
-            current_username_bytes, correct_username_bytes
-        )
-        current_password_bytes = credentials.password.encode("utf8")
-        correct_password_bytes = _AUTH_PWD
-        is_correct_password = secrets.compare_digest(
-            current_password_bytes, correct_password_bytes
-        )
-        if not (is_correct_username and is_correct_password):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Incorrect username or password",
-                headers={"WWW-Authenticate": "Basic"},
-            )
-        return credentials.username
+        local_cache_proxy.clear_expired_data()
     finally:
-        _AuthLock.release()
+        local_cache_proxy.close()
 
 
-_App = FastAPI(dependencies=[Depends(verify_user)])
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(job_clear_expired_cache, IntervalTrigger(minutes=10), id="job_clear_expired_cache", name="job_clear_expired_cache")
+    scheduler.start()
+    yield
+    scheduler.pause()
+
+
+if _AuthUser is not None:
+    _App = FastAPI(dependencies=[Depends(verify_user)], lifespan=lifespan)
+else:
+    _App = FastAPI(lifespan=lifespan)
+
 
 _App.mount("/static", StaticFiles(directory="static"), name="static")
-
-
-def change_auth(username: str, password: str):
-    _AuthLock.acquire()
-    try:
-        global _AUTH_USER, _AUTH_PWD
-        _AUTH_USER = username.encode()
-        _AUTH_PWD = password.encode()
-    finally:
-        _AuthLock.release()
 
 
 def get_app() -> FastAPI:
@@ -103,29 +116,32 @@ def get_cache_proxy() -> AbsCacheProxy:
     return _CacheProxy
 
 
-def get_logger() -> logging.Logger:
-    return _Logger
+def get_logger(module_name: str, root: bool = False) -> logging.Logger:
+    if root:
+        return _Logger
+    else:
+        assert module_name != ''
+        return get_or_create_logger(f'Main.{module_name}')
 
 
-def cache_request(cache_time_s: int):
-    def wrapper(func):
-        async def inner(*args, req_obj: Request):
-
-            _Logger.debug(f'key: {req_obj.url.path}')  # this is full path ? (with query)
-            key = req_obj.url.path
-            cache = _CacheProxy.get(key)
-            if cache is not None:
-                return Response(content=cache.decode('utf-8'), media_type="application/xml")
-
-            feed = await func(*args)
-            content = feed.xml()
-
-            if cache is not None:
-                _CacheProxy.set(key, content, ex=cache_time_s)
-
-            return Response(content=content, media_type="application/xml")
-
-        return inner
-
-    return wrapper
-
+# def cache_xml_request(cache_time_s: int):
+#     def wrapper(func):
+#         async def inner(*args, req_obj: Request):
+#
+#             _Logger.debug(f'key: {req_obj.url.path}')  # this is full path ? (with query)
+#             key = req_obj.url.path
+#             cache = _CacheProxy.get(key)
+#             if cache is not None:
+#                 return Response(content=cache, media_type="application/xml")
+#
+#             resp: Response = await func(*args)
+#             body = resp.body
+#
+#             if cache is not None:
+#                 _CacheProxy.set(key, body, ex=cache_time_s)
+#
+#             return resp
+#
+#         return inner
+#
+#     return wrapper
