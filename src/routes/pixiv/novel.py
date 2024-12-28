@@ -67,7 +67,7 @@ def novel_content(api: AppPixivAPI, novel_id: str) -> str:
     images = jresp2['images']
     original_text: str = jresp2['text']
     replace_id_list = re.findall(r'\[uploadedimage:(\d+)]', original_text)
-    replace_kv: dict[str, str] = {rid: images.get(rid, {}).get('urls', None) for rid in replace_id_list if rid in images and 'urls' in images[rid] and 'original' in images[rid]['urls']}
+    replace_kv: dict[str, str] = {rid: images[rid]['urls'] for rid in replace_id_list if rid in images and 'urls' in images[rid]}
     text: str = original_text.replace('\t', '    ')
     v: dict
     for k, v in replace_kv.items():
@@ -78,5 +78,5 @@ def novel_content(api: AppPixivAPI, novel_id: str) -> str:
         else:
             vv = random.choice(list(v.values()))
         vvv = to_proxy_url(vv)
-        text = text.replace(k, f'\n<img src="{vvv}"/>\n')
+        text = text.replace(f'[uploadedimage:{k}]', f'\n<img src="{vvv}"/>\n')
     return text
