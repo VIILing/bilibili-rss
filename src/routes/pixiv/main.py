@@ -109,7 +109,7 @@ async def user_novels(user_id: int):
     Logger.debug(f'Fetch user novel data done, user id: {user_id}')
 
     feed = AtomFeed(
-        title=f'{author_name}的小说列表',
+        title=f'{author_name}的 Pixiv 小说列表',
         link=f'/pixiv/user_novels/{user_id}',
         updated=datetime.now().strftime('%Y-%m-%dT%H:%M:%S+08:00'),
         authors=[author_name],
