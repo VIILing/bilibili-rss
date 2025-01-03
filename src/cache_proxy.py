@@ -160,7 +160,6 @@ class SQLiteCacheProxy(AbsCacheProxy):
     def close(self):
         self.engine.dispose()
 
-    @LockWrapper
     def clear_expired_data(self) -> None:
         with self.engine.connect() as conn:
             fetch_result = conn.execute(text('select * from runtime_cache'))
