@@ -97,6 +97,24 @@ async def kv_list():
     }
 
 
+@app.get("/api/setting/cookie/list2")
+async def kv_list_2():
+    data = get_cache_proxy().list_all_2(lib=CacheLib.CONFIG)
+    items = []
+    for k, v, ut, et in data:
+        items.append({
+            'key': k,
+            'value': v,
+            'update_time': ut,
+            'expired_time': et
+        })
+    return {
+        "status": 0,
+        "msg": "",
+        "data": {"items": items, "total": len(data)}
+    }
+
+
 class KvUpdate(BaseModel):
     key: str
     value: str

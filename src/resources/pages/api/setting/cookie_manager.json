@@ -3,111 +3,55 @@
   "title": "CookieManager",
   "body": [
     {
-      "id": "u:6042227fa921",
       "type": "crud2",
-      "mode": "table2",
-      "dsType": "api",
       "syncLocation": true,
-      "primaryField": "key",
-      "loadType": "pagination",
       "api": {
-        "url": "/api/setting/cookie/list",
-        "method": "get"
+        "method": "get",
+        "url": "/api/setting/cookie/list2"
       },
-      "headerToolbar": [
-        {
-          "type": "flex",
-          "direction": "row",
-          "justify": "flex-start",
-          "alignItems": "stretch",
-          "style": {
-            "position": "static",
-            "flexWrap": "nowrap"
-          },
-          "items": [],
-          "id": "u:67de926b0763",
-          "isFixedHeight": false,
-          "isFixedWidth": false
-        }
-      ],
-      "footerToolbar": [
-        {
-          "type": "flex",
-          "direction": "row",
-          "justify": "flex-start",
-          "alignItems": "stretch",
-          "style": {
-            "position": "static",
-            "flexWrap": "nowrap"
-          },
-          "items": [
-            {
-              "type": "container",
-              "align": "right",
-              "body": [
-                {
-                  "type": "pagination",
-                  "behavior": "Pagination",
-                  "layout": [
-                    "total",
-                    "perPage",
-                    "pager"
-                  ],
-                  "perPage": 10,
-                  "perPageAvailable": [
-                    10,
-                    20,
-                    50,
-                    100
-                  ],
-                  "align": "right",
-                  "id": "u:2545586bd598"
-                }
-              ],
-              "wrapperBody": false,
-              "style": {
-                "flexGrow": 1,
-                "flex": "1 1 auto",
-                "position": "static",
-                "display": "flex",
-                "flexBasis": "auto",
-                "flexDirection": "row",
-                "flexWrap": "nowrap",
-                "alignItems": "stretch",
-                "justifyContent": "flex-end"
-              },
-              "id": "u:20efcc4463cc"
-            }
-          ],
-          "id": "u:64d135fe1e28",
-          "isFixedHeight": false,
-          "isFixedWidth": false
-        }
-      ],
       "columns": [
         {
-          "type": "tpl",
-          "title": "键",
           "name": "key",
+          "type": "tpl",
           "id": "u:e316adf86937",
           "placeholder": "-",
           "copyable": true,
+          "title": "键",
+          "sorter": true,
+          "searchable": true
+        },
+        {
+          "name": "value",
+          "type": "tpl",
+          "id": "u:0cc676ecc847",
+          "placeholder": "-",
+          "copyable": true,
+          "title": "值",
           "sorter": true,
           "searchable": true
         },
         {
           "type": "tpl",
-          "title": "值",
-          "name": "value",
-          "id": "u:0cc676ecc847",
+          "id": "u:8ea59cb6f29c",
+          "title": "更新时间",
+          "name": "update_time",
           "placeholder": "-",
           "copyable": true,
-          "sorter": true,
-          "searchable": true
+          "sorter": true
+        },
+        {
+          "type": "tpl",
+          "title": "过期时间",
+          "id": "u:f26280f805ab",
+          "name": "expired_time",
+          "placeholder": "-",
+          "copyable": true,
+          "sorter": true
         },
         {
           "type": "operation",
           "title": "操作",
+          "id": "u:72d97019c782",
           "buttons": [
             {
               "type": "button",
@@ -299,8 +243,82 @@
               },
               "id": "u:a8b55ef775a4"
             }
+          ]
+        }
+      ],
+      "id": "u:6042227fa921",
+      "mode": "table2",
+      "dsType": "api",
+      "primaryField": "key",
+      "loadType": "pagination",
+      "headerToolbar": [
+        {
+          "type": "flex",
+          "direction": "row",
+          "justify": "flex-start",
+          "alignItems": "stretch",
+          "style": {
+            "position": "static",
+            "flexWrap": "nowrap"
+          },
+          "items": [],
+          "id": "u:67de926b0763",
+          "isFixedHeight": false,
+          "isFixedWidth": false
+        }
+      ],
+      "footerToolbar": [
+        {
+          "type": "flex",
+          "direction": "row",
+          "justify": "flex-start",
+          "alignItems": "stretch",
+          "style": {
+            "position": "static",
+            "flexWrap": "nowrap"
+          },
+          "items": [
+            {
+              "type": "container",
+              "align": "right",
+              "body": [
+                {
+                  "type": "pagination",
+                  "behavior": "Pagination",
+                  "layout": [
+                    "total",
+                    "perPage",
+                    "pager"
+                  ],
+                  "perPage": 10,
+                  "perPageAvailable": [
+                    10,
+                    20,
+                    50,
+                    100
+                  ],
+                  "align": "right",
+                  "id": "u:2545586bd598"
+                }
+              ],
+              "wrapperBody": false,
+              "style": {
+                "flexGrow": 1,
+                "flex": "1 1 auto",
+                "position": "static",
+                "display": "flex",
+                "flexBasis": "auto",
+                "flexDirection": "row",
+                "flexWrap": "nowrap",
+                "alignItems": "stretch",
+                "justifyContent": "flex-end"
+              },
+              "id": "u:20efcc4463cc"
+            }
           ],
-          "id": "u:72d97019c782"
+          "id": "u:64d135fe1e28",
+          "isFixedHeight": false,
+          "isFixedWidth": false
         }
       ],
       "editorSetting": {

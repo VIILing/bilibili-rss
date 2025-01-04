@@ -2,6 +2,7 @@ import os
 import time
 from enum import Enum
 from abc import ABC, abstractmethod
+from datetime import datetime
 from threading import Lock
 
 import redis
@@ -27,6 +28,16 @@ class AbsCacheProxy(ABC):
     @abstractmethod
     def list_all(self, lib: CacheLib = CacheLib.CONFIG) -> list[tuple[str, str]]:
         raise NotImplementedError
+
+    @abstractmethod
+    def list_all_2(self, lib: CacheLib = CacheLib.CONFIG) -> list[tuple[str, str, str, str]]:
+        raise NotImplementedError
+
+    @staticmethod
+    def int_to_str(value: int | None) -> str:
+        if value is None:
+            return '9999-02-24 00:00:00'
+        return datetime.fromtimestamp(value).strftime('%Y-%m-%d %H:%M:%S')
 
 
 def LockWrapper(func):
@@ -88,6 +99,16 @@ class MemoryCacheProxy(AbsCacheProxy):
     def list_all(self, lib: CacheLib = CacheLib.CONFIG) -> list[tuple[str, str]]:
         cache = self.config_cache if lib == CacheLib.CONFIG else self.runtime_cache
         return [(k, v.decode()) for k, v in cache.items()]
+
+    @LockWrapper
+    def list_all_2(self, lib: CacheLib = CacheLib.CONFIG) -> list[tuple[str, str, str, str]]:
+        cache = self.config_cache if lib == CacheLib.CONFIG else self.runtime_cache
+        dex = self.config_ex if lib == CacheLib.CONFIG else self.runtime_ex
+        ret = []
+        for k, v in cache.items():
+            update_time, expired_time = dex[k] if k in dex else (None, None)
+            ret.append((k, v.decode(), self.int_to_str(update_time), self.int_to_str(expired_time)))
+        return ret
 
 
 class SQLiteCacheProxy(AbsCacheProxy):
@@ -157,6 +178,27 @@ class SQLiteCacheProxy(AbsCacheProxy):
                         ret.append((key, value))
         return ret
 
+    def list_all_2(self, lib: CacheLib = CacheLib.CONFIG) -> list[tuple[str, str, str, str]]:
+        table_name = 'config_cache' if lib == CacheLib.CONFIG else 'runtime_cache'
+
+        with self.engine.connect() as conn:
+            fetch_result = conn.execute(text(f'select * from {table_name}'))
+            rows = fetch_result.all()
+            ret = []
+            now = int(time.time())
+            for key, value, update_time, ext in rows:
+                ut = None if update_time == 0 else update_time
+                et = None if ext == 0 else ext
+
+                if ext == 0:
+                    ret.append((key, value, self.int_to_str(ut), self.int_to_str(et)))
+                else:
+                    if now >= ext:
+                        pass
+                    else:
+                        ret.append((key, value, self.int_to_str(ut), self.int_to_str(et)))
+        return ret
+
     def close(self):
         self.engine.dispose()
 
@@ -196,3 +238,6 @@ class RedisCacheProxy(AbsCacheProxy):
 
     def list_all(self, lib: CacheLib = CacheLib.CONFIG) -> list[tuple[str, str]]:
         return [(k, self.redis_conn.get(k).decode()) for k in self.redis_conn.keys()]  # maybe have better command ?
+
+    def list_all_2(self, lib: CacheLib = CacheLib.CONFIG) -> list[tuple[str, str, str, str]]:
+        return [(k, self.redis_conn.get(k).decode(), self.int_to_str(None), self.int_to_str(None)) for k in self.redis_conn.keys()]  # maybe have better command ?
