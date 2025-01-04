@@ -7,6 +7,9 @@ services:
       - "12001:8000"
     volumes:
       - ./data:/app/src/data
+#    environment:
+#      - auth_user=xxx
+#      - auth_pwd=xxx
 
 
 #  storage:
