@@ -3,7 +3,8 @@ import importlib
 from cache_proxy import CacheLib
 from init import get_app, register_all, get_logger, get_cache_proxy
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
+from fastapi.responses import HTMLResponse
 
 
 logger = get_logger('', root=True)
@@ -29,12 +30,64 @@ app = get_app()
 register_all()
 
 
+"""
+Home page
+"""
+
+
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
+                       
+                       
+"""
+Manager web page
+"""
 
 
-@app.get("/api/setting/kv/list")
+with open(os.path.join(os.path.split(__file__)[0], 'resources', 'amis_template.html'), 'r', encoding='utf-8') as _fn:
+    AmisTemplate = _fn.read()
+
+
+PageJsonCache: dict[str, str] = dict()
+for _root, _dirs, _files in os.walk(os.path.join(os.path.split(__file__)[0], 'resources', 'pages')):
+    for _name in _files:
+        with open(os.path.join(_root, _name), 'r', encoding='utf-8') as _fn:
+            _json_content = _fn.read()
+        PageJsonCache[_name] = _json_content
+
+
+Custom500ErrorHtml = """
+<html>
+    <head>
+        <title>Server Error</title>
+    </head>
+    <body>
+        <h1>500 - Internal Server Error</h1>
+        <p>Something went wrong. Please try again later.</p>
+    </body>
+</html>
+"""
+
+
+def render_html(json_content: str) -> HTMLResponse:
+    return HTMLResponse(content=AmisTemplate.format(json_body=json_content), status_code=200)
+
+
+@app.get("/web/setting/cookie_manager")
+async def web_setting_cookie_manager():
+    json_content = PageJsonCache.get("cookie_manager.json")
+    if json_content is None:
+        return HTMLResponse(content=Custom500ErrorHtml, status_code=500)
+    return render_html(json_content)
+
+
+"""
+Manager api
+"""
+
+
+@app.get("/api/setting/cookie/list")
 async def kv_list():
     data = get_cache_proxy().list_all(lib=CacheLib.CONFIG)
     return {
@@ -49,7 +102,7 @@ class KvUpdate(BaseModel):
     value: str
 
 
-@app.post("/api/setting/kv/update")
+@app.post("/api/setting/cookie/update")
 async def kv_update(body: KvUpdate):
     get_cache_proxy().set(body.key, body.value)
     return {"status": 0, "msg": ""}
