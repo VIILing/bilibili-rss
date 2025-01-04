@@ -1,3 +1,4 @@
+from xml.sax.saxutils import escape as xml_escape
 from pydantic import BaseModel, Field
 
 
@@ -36,10 +37,10 @@ class Video(Media):
     def html(self):
         return f"""
 <p>投稿了视频</p>
-<p><b>{self.title}</b></p>
-<p>{self.desc}</p>
+<p><b>{xml_escape(self.title)}</b></p>
+<p>{xml_escape(self.desc)}</p>
 <p>视频暂不支持直接播放。</p>
-<img src="{self.cover}"/>
+<img src="{xml_escape(self.cover)}"/>
 """.strip()
 
 
@@ -54,11 +55,11 @@ class AtomEntry(BaseModel):
     def xml(self):
         return f"""
 <entry>
-    <title>{self.title}</title>
-    <link href="{self.link}"/>
-    <id>https://t.bilibili.com/{self.eid}</id>
-    <updated>{self.updated}</updated>
-    <summary>{self.summary}</summary>
+    <title>{xml_escape(self.title)}</title>
+    <link href="{xml_escape(self.link)}"/>
+    <id>https://t.bilibili.com/{xml_escape(self.eid)}</id>
+    <updated>{xml_escape(self.updated)}</updated>
+    <summary>{xml_escape(self.summary)}</summary>
     <content type="html"><![CDATA[{self.content}]]></content>
 </entry>
 """.strip()
@@ -78,11 +79,11 @@ class AtomFeed(BaseModel):
         return f"""
 <?xml version="1.0" encoding="UTF-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
-  <title>{self.title}</title>
-  <link href="{self.link}" />
-  <updated>{self.updated}</updated>
-  <author>{authors}</author>
-  <id>{self.fid}</id>
+  <title>{xml_escape(self.title)}</title>
+  <link href="{xml_escape(self.link)}" />
+  <updated>{xml_escape(self.updated)}</updated>
+  <author>{xml_escape(authors)}</author>
+  <id>{xml_escape(self.fid)}</id>
   {entry_list}
 </feed>
 """.strip()

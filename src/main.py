@@ -1,101 +1,126 @@
-from contextlib import asynccontextmanager
+import os
+import importlib
+from cache_proxy import CacheLib
+from init import get_app, register_all, get_logger, get_cache_proxy
 
-import httpx
-from fastapi import FastAPI, Response
-from apscheduler.triggers.cron import CronTrigger
-from apscheduler.schedulers.background import BackgroundScheduler
-
-from my_log import get_logger
-from collect_api import auth as auth_api
-from collect_api import dynamic as dynamic_collect_api
-from convert_api import dynamic as dynamic_convert_api
-from cache_proxy import AbsCacheProxy, MemoryCacheProxy
+from pydantic import BaseModel
+from fastapi.responses import HTMLResponse
 
 
-RSS_CONTENT_CACHE_TIME_S = int(60 * 5)  # todo: read setting instead hard coding
-cache_proxy: AbsCacheProxy = MemoryCacheProxy()
-logger = get_logger('Main')
+logger = get_logger('', root=True)
 
 
-def update_bilibili_cookie_job():
-    logger.info('Start update cookie.')
-    fetch_result = auth_api.update()
-    if fetch_result.ok:
-        logger.info('Successfully update cookie.')
-        bili_ticket, img_key, sub_key, buvid3, buvid4 = fetch_result.data
-        cache_proxy.set('bili_ticket', bili_ticket)
-        cache_proxy.set('img_key', img_key)
-        cache_proxy.set('sub_key', sub_key)
-        cache_proxy.set('buvid3', buvid3)
-        cache_proxy.set('buvid4', buvid4)
-    else:
-        logger.warn('Update cookie failed.')
+routes_dir = os.path.join(os.path.dirname(__file__), 'routes')
+
+for root, dirs, files in os.walk(routes_dir):
+    for dir_name in dirs:
+        main_file = os.path.join(root, dir_name, 'main.py')
+        if os.path.exists(main_file) is False:
+            logger.warning(f"Can't found main file in package {os.path.join(root, dir_name)}")
+            continue
+        if os.path.isfile(main_file) is False:
+            logger.warning(f"Load point main.py is a folder, not file. Path: {os.path.join(root, dir_name, main_file)}")
+            continue
+        module_name = f"routes.{dir_name}.main"
+        importlib.import_module(module_name)
+        logger.info(f"Successfully imported {module_name}")
 
 
-@asynccontextmanager
-async def lifespan(_app: FastAPI):
-    # file_wd = os.path.split(os.path.abspath(__file__))[0]
-    scheduler = BackgroundScheduler()
-    scheduler.add_job(update_bilibili_cookie_job, CronTrigger(hour=1), id="job_id", name="My periodic task")
-    scheduler.start()
-    update_bilibili_cookie_job()
-    yield
-    scheduler.pause()
+app = get_app()
+register_all()
 
 
-app = FastAPI(lifespan=lifespan)
-
-
-StrOrNoneType = str | None
-
-
-def get_cookie() -> tuple[bool, StrOrNoneType, StrOrNoneType, StrOrNoneType, StrOrNoneType, StrOrNoneType]:
-    bili_ticket: bytes | None = cache_proxy.get('bili_ticket')
-    img_key: bytes | None = cache_proxy.get('img_key')
-    sub_key: bytes | None = cache_proxy.get('sub_key')
-    buvid3: bytes | None = cache_proxy.get('buvid3')
-    buvid4: bytes | None = cache_proxy.get('buvid4')
-
-    bili_ticket = bili_ticket.decode('utf-8') if bili_ticket is not None else None
-    img_key = img_key.decode('utf-8') if img_key is not None else None
-    sub_key = sub_key.decode('utf-8') if sub_key is not None else None
-    buvid3 = buvid3.decode('utf-8') if buvid3 is not None else None
-    buvid4 = buvid4.decode('utf-8') if buvid4 is not None else None
-
-    all_ok = all([e is not None for e in (bili_ticket, img_key, sub_key, buvid3, buvid4)])
-
-    return all_ok, bili_ticket, img_key, sub_key, buvid3, buvid4
+"""
+Home page
+"""
 
 
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
+                       
+                       
+"""
+Manager web page
+"""
 
 
-@app.get("/bilibili/dynamic/{user_id}")
-async def bili_dynamic(user_id: int):
-    logger.debug(f'Accept dynamic request, user id: {user_id}')
-    all_ok, bili_ticket, img_key, sub_key, buvid3, buvid4 = get_cookie()
+with open(os.path.join(os.path.split(__file__)[0], 'resources', 'amis_template.html'), 'r', encoding='utf-8') as _fn:
+    AmisTemplate = _fn.read()
 
-    if all_ok is False:
-        return Response(status_code=500)
 
-    key = f'/bilibili/dynamic/{user_id}'
-    cache = cache_proxy.get(key)
-    if cache is not None:
-        logger.debug(f'Return cache to dynamic request, user id: {user_id}')
-        return Response(content=cache.decode('utf-8'), media_type="application/xml")
+PageJsonCache: dict[str, str] = dict()
+for _root, _dirs, _files in os.walk(os.path.join(os.path.split(__file__)[0], 'resources', 'pages')):
+    for _name in _files:
+        with open(os.path.join(_root, _name), 'r', encoding='utf-8') as _fn:
+            _json_content = _fn.read()
+        PageJsonCache[_name] = _json_content
 
-    logger.debug(f'Get cookie done, send dynamic request, user id: {user_id}')
-    async with httpx.AsyncClient() as client:
-        fetch_result = await dynamic_collect_api.get_space_data(client, bili_ticket, buvid3, buvid4, img_key, sub_key, user_id)
-        if fetch_result.ok is False:
-            return Response(500)
 
-    logger.debug(f'Get dynamic data done, start parse, user id: {user_id}')
-    feed = dynamic_convert_api.extract_dynamic(user_id, fetch_result.data)
-    content = feed.xml()
-    cache_proxy.set(key, content, ex=RSS_CONTENT_CACHE_TIME_S)
+Custom500ErrorHtml = """
+<html>
+    <head>
+        <title>Server Error</title>
+    </head>
+    <body>
+        <h1>500 - Internal Server Error</h1>
+        <p>Something went wrong. Please try again later.</p>
+    </body>
+</html>
+"""
 
-    logger.debug(f'Return dynamic data, user id: {user_id}')
-    return Response(content=content, media_type="application/xml")
+
+def render_html(json_content: str) -> HTMLResponse:
+    return HTMLResponse(content=AmisTemplate.format(json_body=json_content), status_code=200)
+
+
+@app.get("/web/setting/cookie_manager")
+async def web_setting_cookie_manager():
+    json_content = PageJsonCache.get("cookie_manager.json")
+    if json_content is None:
+        return HTMLResponse(content=Custom500ErrorHtml, status_code=500)
+    return render_html(json_content)
+
+
+"""
+Manager api
+"""
+
+
+@app.get("/api/setting/cookie/list")
+async def kv_list():
+    data = get_cache_proxy().list_all(lib=CacheLib.CONFIG)
+    return {
+        "status": 0,
+        "msg": "",
+        "data": {"items": [{'key': k, 'value': v} for k, v in data], "total": len(data)}
+    }
+
+
+@app.get("/api/setting/cookie/list2")
+async def kv_list_2():
+    data = get_cache_proxy().list_all_2(lib=CacheLib.CONFIG)
+    items = []
+    for k, v, ut, et in data:
+        items.append({
+            'key': k,
+            'value': v,
+            'update_time': ut,
+            'expired_time': et
+        })
+    return {
+        "status": 0,
+        "msg": "",
+        "data": {"items": items, "total": len(data)}
+    }
+
+
+class KvUpdate(BaseModel):
+    key: str
+    value: str
+
+
+@app.post("/api/setting/cookie/update")
+async def kv_update(body: KvUpdate):
+    get_cache_proxy().set(body.key, body.value)
+    return {"status": 0, "msg": ""}

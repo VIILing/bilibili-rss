@@ -2,7 +2,9 @@ redis
 fastapi[standard]
 apscheduler
 requests
-xmltodict
+sqlalchemy
 pydantic
+pydantic-settings
 pyyaml
 httpx
+pixivpy3
