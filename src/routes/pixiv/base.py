@@ -23,8 +23,8 @@ def update_aapi(logger: Logger, cache_proxy: AbsCacheProxy) -> AppPixivAPI | Non
             pass
 
     logger.info(f'Start login to pixiv')
-    api = AppPixivAPI(proxies={'http': 'http://127.0.0.1:10809', 'https': 'http://127.0.0.1:10809'})
-    # api = AppPixivAPI()
+    # api = AppPixivAPI(proxies={'http': 'http://127.0.0.1:10809', 'https': 'http://127.0.0.1:10809'})
+    api = AppPixivAPI()
     try:
         api.auth(refresh_token=refresh_token.decode())
     except PixivError:
