@@ -4,6 +4,7 @@ from pixivpy3 import AppPixivAPI
 from rss_model import *
 from cache_proxy import CacheLib
 from init import AbsCacheProxy, get_logger
+from .base import update_aapi, FetchError
 
 
 Logger = get_logger('pixiv')
@@ -17,9 +18,22 @@ def to_proxy_url(ori: str):
 
 def user_novels(api: AppPixivAPI, user_id: int, cache_proxy: AbsCacheProxy) -> tuple[str, list[AtomEntry]]:
     jresp = api.user_novels(user_id)
-    Logger.info(f'Fetch user novels done, user id: {user_id}')
+
+    # todo: 手动重试太不优雅了，之后想个法子改了。
+    if 'user' not in jresp:
+        api = update_aapi(Logger, cache_proxy)
+        if api is None:
+            Logger.debug(f'Update PixivAppApi failed.')
+            raise FetchError
+
+        jresp = api.user_novels(user_id)
+
+        if 'user' not in jresp:
+            Logger.debug(f"Fetch user's novel failed. User id: {user_id}")
+            raise FetchError
 
     author_name: str = jresp['user']['name']
+    Logger.info(f'Fetch user novels done, user id: {user_id}')
 
     ret: list[AtomEntry] = []
     for n in jresp['novels']:
@@ -37,7 +51,7 @@ def user_novels(api: AppPixivAPI, user_id: int, cache_proxy: AbsCacheProxy) -> t
         if content is not None:
             content_str = content.decode()
         else:
-            content_str = novel_content(api, novel_id)
+            content_str = novel_content(cache_proxy, api, novel_id)
             cache_proxy.set(novel_content_cache_key, content_str, lib=CacheLib.RUNTIME)
 
         media_list = []
@@ -60,8 +74,21 @@ def user_novels(api: AppPixivAPI, user_id: int, cache_proxy: AbsCacheProxy) -> t
     return author_name, ret
 
 
-def novel_content(api: AppPixivAPI, novel_id: str) -> str:
+def novel_content(cache_proxy: AbsCacheProxy, api: AppPixivAPI, novel_id: str) -> str:
     jresp2 = api.webview_novel(novel_id)
+
+    if 'text' not in jresp2:
+        api = update_aapi(Logger, cache_proxy)
+        if api is None:
+            Logger.debug(f'Update PixivAppApi failed.')
+            raise FetchError
+
+        jresp2 = api.webview_novel(novel_id)
+
+        if 'text' not in jresp2:
+            Logger.debug(f"Fetch novel content failed. Novel id: {novel_id}")
+            raise FetchError
+
     Logger.info(f'Fetch novel done, novel id: {novel_id}')
 
     images = jresp2['images']

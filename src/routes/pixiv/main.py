@@ -8,8 +8,8 @@ from init import get_router, get_cache_proxy, get_logger
 from cache_proxy import CacheLib
 from fastapi import APIRouter, Response, HTTPException, Depends
 from fastapi.responses import RedirectResponse
-from pixivpy3 import AppPixivAPI, PixivError
 from . import novel
+from .base import get_aapi, update_aapi, FetchError
 from rss_model import AtomFeed
 
 
@@ -18,47 +18,24 @@ CacheProxy = get_cache_proxy()
 Logger = get_logger('pixiv')
 
 
-AApi: AppPixivAPI | None = None
-
-
-def initialize_aapi(refresh_token: str) -> bool:
-    Logger.info(f'Start login to pixiv')
-    # api = AppPixivAPI(proxies={'http': 'http://127.0.0.1:10809', 'https': 'http://127.0.0.1:10809'})
-    api = AppPixivAPI()
-    try:
-        api.auth(refresh_token=refresh_token)
-    except PixivError:
-        return False
-    global AApi
-    AApi = api
-    Logger.info('Successfully login to pixiv.')
-    return True
-
-
 @asynccontextmanager
 async def lifespan(_app: APIRouter):
-    refresh_token = CacheProxy.get('pixiv_refresh_token')
-    if refresh_token is None:
-        CacheProxy.set('pixiv_refresh_token', '')
-    else:
-        if refresh_token.decode() == '':
-            pass
-        else:
-            initialize_aapi(refresh_token.decode())
+    update_aapi(Logger, CacheProxy)
     yield
 
 
 def check_init():
-    if AApi is None:
+    aapi = get_aapi()
+    if aapi is None:
         refresh_token = CacheProxy.get('pixiv_refresh_token')
-        if refresh_token is None or refresh_token.decode() == '':
+        if refresh_token is None or refresh_token == b'':
             raise HTTPException(status_code=400, detail="Not login.")
         else:
-            ok = initialize_aapi(refresh_token.decode())
-            if ok:
-                pass
-            else:
+            aapi = update_aapi(Logger, CacheProxy)
+            if aapi is None:
                 raise HTTPException(status_code=400, detail="Login failed.")
+            else:
+                pass
     else:
         pass
 
@@ -82,7 +59,7 @@ async def image_proxy(full_path: str):
     real_path = full_path.replace('https---', 'https://').replace('http---', 'http://')
     bio: BytesIO
     with closing(BytesIO()) as bio:
-        AApi.download(real_path, fname=bio)
+        get_aapi().download(real_path, fname=bio)
         bio.seek(0)
         bc = bio.getvalue()
     CacheProxy.set(key, bc, lib=CacheLib.RUNTIME)
@@ -104,7 +81,10 @@ async def user_novels(user_id: int):
         Logger.debug(f'Return cache to request, key: {key}')
         return Response(content=cache.decode('utf-8'), media_type="application/xml")
 
-    author_name, entry_list = novel.user_novels(AApi, user_id, CacheProxy)
+    try:
+        author_name, entry_list = novel.user_novels(get_aapi(), user_id, CacheProxy)
+    except FetchError:
+        return HTTPException(status_code=500, detail="Fetch failed, maybe token expired or network error.")
 
     Logger.debug(f'Fetch user novel data done, user id: {user_id}')
 
@@ -118,5 +98,5 @@ async def user_novels(user_id: int):
     )
     CacheProxy.set(key, feed.xml(), ex=RSS_CONTENT_CACHE_TIME_S, lib=CacheLib.RUNTIME)
 
-    Logger.debug(f'Return dynamic data, user id: {user_id}')
+    Logger.debug(f"Return pixiv user's novel data, user id: {user_id}")
     return Response(content=feed.xml(), media_type="application/xml")
